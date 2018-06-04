@@ -12,29 +12,27 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define YUKI_LOG(fmt, ...) \
-    { printf("[LOG] "); printf(fmt, ##__VA_ARGS__); }
+#define YUKI_LOG(fmt, ...) { printf("[LOG] "); printf(fmt, ##__VA_ARGS__); }
 
 #ifdef NDEBUG
 #define YUKI_DEBUG(fmt, ...) {}
 #else
-#define YUKI_DEBUG(fmt, ...) \
-	{ printf("[DEBUG] "); printf(fmt, ##__VA_ARGS__); }
+#define YUKI_DEBUG(fmt, ...) { printf("[DEBUG] "); printf(fmt, ##__VA_ARGS__); }
 #endif
 
-#define YUKI_ERROR(fmt, ...) do {\
+#define YUKI_ERROR(fmt, ...) {\
 	printf("Error in [%s] (line: %d) : ", __FUNCTION__, __LINE__);\
-	printf(fmt, ##__VA_ARGS__); } while (0);
-#define YUKI_ERROR_EXIT(fmt, ...) do {\
+	printf(fmt, ##__VA_ARGS__); }
+#define YUKI_ERROR_EXIT(fmt, ...) {\
 	printf("Error in [%s] (line: %d) : ", __FUNCTION__, __LINE__);\
 	printf(fmt, ##__VA_ARGS__);\
-	getchar(); exit(1); } while (0);
-#define CHECK(assertion) do {\
+	getchar(); exit(1); }
+#define CHECK(assertion) {\
 		bool flag = assertion;\
 		if (!flag) {\
 			printf("Error in [%s] (line: %d) : CHECK fail.\n", __FUNCTION__, __LINE__);\
 			getchar(); exit(1);\
 		}\
-	} while (0);
+	}
 
 #endif // !__YUKI_UTILS_LOG_H__

@@ -44,6 +44,7 @@ The "data" subchunk contains the size of the data and the actual sound:
 
 #pragma once
 #include "core.h"
+#include "common.h"
 #include <string>
 #include <fstream>
 #include <vector>
@@ -53,7 +54,7 @@ NAMESPACE_BEGIN(audio)
 
 class WAVPCM
 {
-    std::vector<std::vector<uint8_t>> data_;
+    AudioTracks data_;
 public:
     struct Header
     {

@@ -29,7 +29,7 @@ void test_audio()
 
     try
     {
-        wav_file.read("../asset/test2.wav");
+        wav_file.read("../asset/test.wav");
     }
     catch (std::runtime_error &e)
     {
