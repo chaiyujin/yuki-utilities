@@ -7,5 +7,7 @@ include_directories(./src/)
 # add definitions
 add_definitions(-std=c++11 -O2)
 
-add_executable(yuki ./src/main.cpp)
+add_executable(yuki
+    ./src/main.cpp
+    ./src/audio/io_wav.cpp)
 target_link_libraries(yuki Eigen3::Eigen)

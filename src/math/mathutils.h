@@ -128,11 +128,9 @@ namespace yuki
 		typedef vec4_<unsigned char> rgba32;
 		typedef vec4_<float> rgba_flt;
 
-#ifdef USE_YUKI_MATH_WITH_EIGEN
 		template <typename T> Eigen::Matrix<T, 2, 1> to_eigen(const vec2_<T> &v) { return Eigen::Matrix<T, 2, 1>(v.x, v.y); }
 		template <typename T> Eigen::Matrix<T, 3, 1> to_eigen(const vec3_<T> &v) { return Eigen::Matrix<T, 3, 1>(v.x, v.y, v.z); }
 		template <typename T> Eigen::Matrix<T, 4, 1> to_eigen(const vec4_<T> &v) { return Eigen::Matrix<T, 4, 1>(v.x, v.y, v.z, v.w); }
-#endif
 
 		/* ------------------------------------------------------------------------------------------------- */
 
