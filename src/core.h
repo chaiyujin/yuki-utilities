@@ -3,6 +3,8 @@
 #define NAMESPACE_BEGIN(name) namespace name {
 #define NAMESPACE_END(name) }
 
+
+
 #ifndef __YUKI_UTILS_LOG_H__
 #define __YUKI_UTILS_LOG_H__
 

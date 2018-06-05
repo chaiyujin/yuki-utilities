@@ -54,7 +54,6 @@ NAMESPACE_BEGIN(audio)
 
 class WAVPCM
 {
-    AudioTracks data_;
 public:
     struct Header
     {
@@ -79,6 +78,14 @@ public:
 
     bool read(const std::string &path);
     bool write(const std::string &path);
+
+    AudioSamples &track(int i) { return data_[i]; }
+    const AudioSamples &track(int i) const { return data_[i]; }
+    uint32_t samplerate() const { return header_.sample_rate; }
+    
+private:
+    std::vector<AudioSamples>   data_;
+    Header                      header_;    
 };
 
 NAMESPACE_END(audio)

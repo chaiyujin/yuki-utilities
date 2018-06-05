@@ -3,4 +3,6 @@
 #include "Eigen/Eigen"
 #include <vector>
 
-typedef std::vector<Eigen::VectorXf> AudioTracks;
+typedef std::vector<double> AudioMask;
+typedef std::vector<double> AudioSamples;
+typedef std::vector<double> AudioFeature;

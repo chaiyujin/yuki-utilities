@@ -1,5 +1,6 @@
 #include "math/mathutils.h"
 #include "audio/io_wav.h"
+#include "audio/features.h"
 
 using namespace std;
 void test_vec();
@@ -30,6 +31,14 @@ void test_audio()
     try
     {
         wav_file.read("../asset/test.wav");
+        auto feature = Features::power_spectrum(wav_file.track(0), wav_file.samplerate());
+        std::cout << feature[0].size() << std::endl;
+        for (int i = 0; i < 10; ++i)
+        {
+            std::cout << feature[0][i] << " ";
+            if (i % 5 == 4) std::cout << endl;
+        }
+        std::cout << endl;
     }
     catch (std::runtime_error &e)
     {
