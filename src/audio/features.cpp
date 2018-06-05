@@ -56,6 +56,7 @@ std::vector<AudioFeature> Features::power_spectrum(
             feature[i] = fftw_out[i][0] * fftw_out[i][0] + fftw_out[i][1] * fftw_out[i][1];
         if (N % 2 == 0)
             feature[N / 2] = fftw_out[N / 2][0] * fftw_out[N / 2][0];
+        // scale according to NFFT.
         for (size_t i = 0; i < feature.size(); ++i)
             feature[i] *= 1.0 / N;
     }
