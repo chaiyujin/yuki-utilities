@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 
 option(ENABLE_DEBUG "enable debug log" ON)
 option(ENABLE_GUI "enable nanogui" ON)
@@ -8,6 +8,14 @@ find_package(Eigen3 REQUIRED)
 find_package(FFTW3 REQUIRED)
 include_directories(${PROJECT_SOURCE_DIR}/src/)
 include_directories(${EIGEN3_INCLUDE_DIR})
+# add ffmpeg
+if (APPLE)
+    message("ffmpeg installed by homebrew")
+    include_directories(/usr/local/Cellar/ffmpeg/4.0/include/)
+    link_directories(/usr/local/Cellar/ffmpeg/4.0/lib/)
+
+    set(FFMPEG_LIB avcodec avdevice avfilter avformat avresample avutil postproc swresample swscale)
+endif()
 
 # find gui
 if (ENABLE_GUI)
@@ -31,4 +39,7 @@ add_executable(yuki
     ${PROJECT_SOURCE_DIR}/src/main.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/io_wav.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/features.cpp)
-target_link_libraries(yuki Eigen3::Eigen fftw3)
+target_link_libraries(yuki
+    Eigen3::Eigen
+    fftw3
+    ${FFMPEG_LIB})
