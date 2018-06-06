@@ -1,9 +1,9 @@
 #pragma once
 
 extern "C" {
-	#ifndef __STDC_CONSTANT_MACROS
-	#define __STDC_CONSTANT_MACROS
-	#endif
+    #ifndef __STDC_CONSTANT_MACROS
+    #define __STDC_CONSTANT_MACROS
+    #endif
 
     #include <libavutil/opt.h>
     #include <libavutil/dict.h>
@@ -56,10 +56,10 @@ namespace media {
     };
 
     class VideoFrame : public Frame
-	{
-		int			                w_, h_, pixels_;
-		bool		                is_depth_;
-	public:
+    {
+        int                            w_, h_, pixels_;
+        bool                        is_depth_;
+    public:
         VideoFrame() : Frame(), w_(0), h_(0), pixels_(0), is_depth_(false) {}
         VideoFrame(AVFrame *frame, double pts, bool depth)
             : Frame() { from_avframe(frame, pts, depth); }
@@ -70,24 +70,24 @@ namespace media {
         bool is_depth() const { return is_depth_; }
 
         // only RGBA or DepthRVL
-		void from_avframe(AVFrame *frame, double pts, bool depth)
-		{
-			is_depth_ = depth;
-			int size = frame->width * frame->height * 2;	// uint16_t
-			if (!depth) size *= 2;							// RGBA
-			data_.reset(new uint8_t[size]);
-			memcpy(data_.get(), frame->data[0], size);
-			w_ = frame->width;
-			h_ = frame->height;
+        void from_avframe(AVFrame *frame, double pts, bool depth)
+        {
+            is_depth_ = depth;
+            int size = frame->width * frame->height * 2;    // uint16_t
+            if (!depth) size *= 2;                            // RGBA
+            data_.reset(new uint8_t[size]);
+            memcpy(data_.get(), frame->data[0], size);
+            w_ = frame->width;
+            h_ = frame->height;
             pixels_ = w_ * h_;
-			ts_ = pts;
-		}
-	};
+            ts_ = pts;
+        }
+    };
 
-	struct AudioFrame : public Frame
-	{
-		int			                nb_samples_;
-		int			                byte_per_sample_;
+    struct AudioFrame : public Frame
+    {
+        int                            nb_samples_;
+        int                            byte_per_sample_;
     public:
         AudioFrame() : Frame(), nb_samples_(0), byte_per_sample_(0) {}
         AudioFrame(AVFrame *frame, double pts, int nb_samples, int byte_per_sample)
@@ -96,15 +96,15 @@ namespace media {
         int nb_samples() const { return nb_samples_; }
         int byte_per_sample() const { return byte_per_sample_; }
 
-		void from_avframe(AVFrame *frame, double pts, int nb_samples, int byte_per_sample)
-		{
-			nb_samples_ = nb_samples;
-			byte_per_sample_ = byte_per_sample;
-			data_.reset(new uint8_t[nb_samples_ * byte_per_sample_]);
-			memcpy(data_.get(), frame->data[0], nb_samples_ * byte_per_sample_);
-			ts_ = pts;
-		}
-	};
+        void from_avframe(AVFrame *frame, double pts, int nb_samples, int byte_per_sample)
+        {
+            nb_samples_ = nb_samples;
+            byte_per_sample_ = byte_per_sample;
+            data_.reset(new uint8_t[nb_samples_ * byte_per_sample_]);
+            memcpy(data_.get(), frame->data[0], nb_samples_ * byte_per_sample_);
+            ts_ = pts;
+        }
+    };
 
     template <class T> class Stream;
     template <>
@@ -112,7 +112,6 @@ namespace media {
     {
     public:
         const media::Type Type = media::Type::Audio;
-        
-    };
 
+    };
 }}
