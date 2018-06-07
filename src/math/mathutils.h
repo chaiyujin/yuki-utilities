@@ -45,17 +45,19 @@ namespace yuki
 			bool operator==(const vec3_ &b) const { return x == b.x && y == b.y && z == b.z; }
 			T &operator[](int idx) { if (idx == 0) return x; else if (idx == 1) return y; else return z;}
 			const T &operator[](int idx) const { if (idx == 0) return x; else if (idx == 1) return y; else return z;}
-			vec3_ operator+(const vec3_ &b)
+			vec3_ operator+(const vec3_ &b) const
 			{
 				return vec3_(x + b.x, y + b.y, z + b.z);
 			}
-			vec3_ operator/(const T v)
+			template <typename U>
+			vec3_ operator/(const U v) const
 			{
-				return vec3_(x / v, y / v, z / v);
+				return vec3_(x / (T)v, y / (T)v, z / (T)v);
 			}
-			vec3_ operator*(const T v)
+			template <typename U>
+			vec3_ operator*(const U v) const
 			{
-				return vec3_(x * v, y * v, z * v);
+				return vec3_(x * (T)v, y * (T)v, z * (T)v);
 			}
 			vec3_ normalize() const
 			{

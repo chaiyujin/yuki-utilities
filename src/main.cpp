@@ -1,15 +1,18 @@
 #include "math/mathutils.h"
 #include "audio/io_wav.h"
 #include "audio/features.h"
+#include "image/image.h"
 
 using namespace std;
 void test_vec();
 void test_audio();
+void test_image();
 
 int main()
 {
     test_vec();
     test_audio();
+    test_image();
 
     return 0;
 }
@@ -44,4 +47,12 @@ void test_audio()
     {
         cerr << e.what() << endl;
     }
+}
+
+void test_image()
+{
+    // test color map
+    using namespace yuki::image;
+    std::cout << ColorMap::Jet.get(0.0) << std::endl;
+    std::cout << ColorMap::Jet.get(1.0) << std::endl;
 }

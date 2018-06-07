@@ -9,8 +9,7 @@
 #include <condition_variable>
 #include <queue>
 
-namespace yuki
-{
+
 	#ifndef __YUKI_UTILS_LOG_H__
 	#define __YUKI_UTILS_LOG_H__
 
@@ -19,7 +18,7 @@ namespace yuki
 
 	#define YUKI_LOG(fmt, ...) { printf("[LOG] "); printf(fmt, ##__VA_ARGS__); }
 
-	#ifdef NDEBUG
+	#ifndef _YUKI_DEBUG_
 	#define YUKI_DEBUG(fmt, ...) {}
 	#else
 	#define YUKI_DEBUG(fmt, ...) { printf("[DEBUG] "); printf(fmt, ##__VA_ARGS__); }
@@ -41,7 +40,7 @@ namespace yuki
 		}
 
 	#endif // !__YUKI_UTILS_LOG_H__
-}
+
 
 namespace yuki
 {

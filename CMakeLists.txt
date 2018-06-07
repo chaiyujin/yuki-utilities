@@ -8,6 +8,10 @@ find_package(Eigen3 REQUIRED)
 find_package(FFTW3 REQUIRED)
 include_directories(${PROJECT_SOURCE_DIR}/src/)
 include_directories(${EIGEN3_INCLUDE_DIR})
+
+# find opencv
+find_package(OpenCV REQUIRED)
+
 # add ffmpeg
 if (APPLE)
     message("ffmpeg installed by homebrew")
@@ -28,8 +32,10 @@ if (ENABLE_GUI)
 endif()
 
 if (ENABLE_DEBUG)
+    message("debug")
+    add_definitions(-D_YUKI_DEBUG_)
 else()
-    add_definitions(-DNDEBUG)
+    message("release")
     add_definitions(-O2)
 endif()
 
@@ -38,8 +44,10 @@ add_definitions(-std=c++11)
 add_executable(yuki
     ${PROJECT_SOURCE_DIR}/src/main.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/io_wav.cpp
-    ${PROJECT_SOURCE_DIR}/src/audio/features.cpp)
+    ${PROJECT_SOURCE_DIR}/src/audio/features.cpp
+    ${PROJECT_SOURCE_DIR}/src/image/color_map.cpp)
 target_link_libraries(yuki
     Eigen3::Eigen
     fftw3
-    ${FFMPEG_LIB})
+    ${FFMPEG_LIB}
+    opencv)
