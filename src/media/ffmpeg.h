@@ -106,9 +106,9 @@ namespace media {
         }
     };
 
-    template <class T> class Stream;
+    template <class T> class AVStream;
     template <>
-    class Stream<AudioFrame>
+    class AVStream<AudioFrame>
     {
     public:
         const media::Type Type = media::Type::Audio;

@@ -12,6 +12,14 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 # find opencv
 find_package(OpenCV REQUIRED)
 
+# find openmp
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 # add ffmpeg
 if (APPLE)
     message("ffmpeg installed by homebrew")
@@ -39,7 +47,7 @@ else()
     add_definitions(-O2)
 endif()
 
-add_definitions(-std=c++11)
+add_definitions(-std=c++11 -fopenmp)
 
 add_executable(yuki
     ${PROJECT_SOURCE_DIR}/src/main.cpp
@@ -50,4 +58,4 @@ target_link_libraries(yuki
     Eigen3::Eigen
     fftw3
     ${FFMPEG_LIB}
-    opencv)
+    ${OpenCV_LIBS})

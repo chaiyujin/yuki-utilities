@@ -5,4 +5,5 @@
 
 typedef std::vector<double> AudioMask;
 typedef std::vector<double> AudioSamples;
-typedef std::vector<double> AudioFeature;
+typedef Eigen::VectorXd     AudioFeature;
+typedef Eigen::MatrixXd     AudioFeatureList;

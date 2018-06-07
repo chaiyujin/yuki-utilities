@@ -1,8 +1,9 @@
 #pragma once
-#include "core.h"
 #include "math/mathutils.h"
+#include "common.h"
 #include <vector>
 #include <map>
+#include <string>
 
 NAMESPACE_BEGIN(yuki)
 NAMESPACE_BEGIN(image)
@@ -90,12 +91,41 @@ private:
 
 public:
     const static ColorMap Jet;
-    // const static ColorMap Classic;
-    // const static ColorMap GrayScale;
-    // const static ColorMap InvGrayScale;
-    // const static ColorMap Biomes;
-    // const static ColorMap Cold;
-    // const static ColorMap Warm;
+    const static ColorMap Classic;
+    const static ColorMap GrayScale;
+    const static ColorMap InvGrayScale;
+    const static ColorMap Biomes;
+    const static ColorMap Cold;
+    const static ColorMap Warm;
+
+    template <class U>
+    static cv::Mat colorize_eigen(const U &matrix, range_float range={0, 0}, const ColorMap &cm=ColorMap::Jet, bool y_reverse=true)
+    {  
+        cv::Mat ret(matrix.rows(), matrix.cols(), CV_8UC4);
+        auto max_ = matrix.maxCoeff();
+        auto min_ = matrix.minCoeff();
+        if (range.is_valid() && range.start != range.end)
+        {
+            if (range.start > min_) min_ = range.start;
+            if (range.end   < max_) max_ = range.end;
+        }
+        auto len_ = (max_ - min_);
+#pragma omp parallel for
+        for (int i = 0; i < matrix.rows(); ++i)
+        {
+            uint8_t *ptr = ret.ptr<uint8_t>( (y_reverse) ? matrix.rows() - i - 1 : i );
+            for (int j = 0; j < matrix.cols(); ++j)
+            {
+                auto color = cm.get( (matrix(i, j) - min_) / len_ );
+                ptr[j * 4]     = color.z;
+                ptr[j * 4 + 1] = color.y;
+                ptr[j * 4 + 2] = color.x;
+                ptr[j * 4 + 3] = 255;
+            }
+        }
+        
+        return ret;
+    }
 };
 
 

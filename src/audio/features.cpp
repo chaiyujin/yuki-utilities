@@ -1,5 +1,6 @@
 #include "features.h"
 #include "fftw3.h"
+#include <iostream>
 
 NAMESPACE_BEGIN(yuki)
 NAMESPACE_BEGIN(audio)
@@ -11,34 +12,64 @@ AudioMask Features::Window::ones(int length)
 
 AudioSamples Features::pre_emphasis(const AudioSamples &signal, double preemph)
 {
-    AudioSamples ret(signal.size());
-    ret[0] = signal[0];
-    for (size_t i = 1; i < signal.size(); ++i)
+    if (preemph > 0)
     {
-        ret[i] = signal[i] - preemph * signal[i - 1];
+        AudioSamples ret(signal.size());
+        ret[0] = signal[0];
+        for (size_t i = 1; i < signal.size(); ++i)
+        {
+            ret[i] = signal[i] - preemph * signal[i - 1];
+        }
+        return ret;
     }
-    return ret;
+    else
+        return signal;
 }
 
-std::vector<AudioFeature> Features::power_spectrum(
+Eigen::MatrixXd Features::mel_filters(int nfilt, int nfft, int samplerate, double lowfreq, double highfreq)
+{
+    Eigen::MatrixXd filters(nfilt, nfft / 2 + 1);
+    if (highfreq > samplerate / 2)
+        highfreq = samplerate / 2.0;
+    double low_mel = hz2mel(lowfreq);
+    double high_mel = hz2mel(highfreq);
+    double mel_step = (high_mel - low_mel) / (nfilt + 1);  // triangles, need one more point
+    std::vector<int> bin(nfilt + 2);
+    for (double mel = low_mel, i = 0; mel < high_mel; mel += mel_step, i++)
+        bin[i] = (int)std::floor(mel2hz(mel) * (nfft + 1.0) / samplerate);
+    bin.back() = (int)std::floor(highfreq * (nfft + 1.0) / samplerate);
+    // clear zero
+    filters.setZero();
+    for (int i = 0; i < nfilt; ++i)
+    {
+        for (int j = bin[i]; j < bin[i + 1]; ++j)
+            filters(i, j) = (double)(j - bin[i]) / (double)(bin[i + 1] - bin[i]);
+        for (int j = bin[i + 1]; j < bin[i + 2]; ++j)
+            filters(i, j) = (double)(j - bin[i + 2]) / (double)(bin[i + 1] - bin[i + 2]);
+    }
+    return filters;
+}
+
+AudioFeatureList Features::power_spectrum(
     const AudioSamples &signal, int samplerate,
     double winlen, double winstep, int nfft,
     AudioMask(*winfunc)(int length))
 {
-    std::vector<AudioFeature> ret;
-    int N = 0;
     int samples = winlen * samplerate;
     int step = winstep * samplerate;
-    if (nfft > samples)
-        N = nfft;
-    else
-        N = samples;
+    int N = (nfft > samples) ? nfft : samples;
 
     auto win_mask = winfunc(samples);
     double *fftw_in = fftw_alloc_real(N);
     fftw_complex *fftw_out = fftw_alloc_complex(N / 2 + 1);
     auto p = fftw_plan_dft_r2c_1d(N, fftw_in, fftw_out, FFTW_ESTIMATE);
     memset(fftw_in, 0, sizeof(double) * N);
+
+    int frames = 0;
+    if ((int)signal.size() >= samples)
+        frames = ((int)signal.size() - samples) / step + 1;
+
+    AudioFeatureList ret(N / 2 + 1, frames);
 
     for (int s = 0; s + samples < signal.size(); s += step)
     {
@@ -48,8 +79,7 @@ std::vector<AudioFeature> Features::power_spectrum(
         fftw_execute(p);
 
         // append new feature
-        ret.emplace_back(N / 2 + 1);
-        auto &feature = ret.back();
+        auto feature = ret.col(s / step);
         
         feature[0] = fftw_out[0][0] * fftw_out[0][0];
         for (int i = 1; i < (N + 1) / 2; ++i)
@@ -65,7 +95,63 @@ std::vector<AudioFeature> Features::power_spectrum(
     return ret;
 }
 
-std::vector<AudioFeature> Features::mfcc(
+AudioFeatureList Features::filter_bank(
+    const AudioSamples &signal, int samplerate,
+    double winlen, double winstep, int nfft,
+    int nfilt, double lowfreq, double highfreq,
+    double preemph, AudioMask(*winfunc)(int length))
+{
+    auto zero_to_eps = [](double x) -> double {
+        return (x == 0) ? std::numeric_limits<double>::epsilon() : x;
+    };
+
+    int samples = winlen * samplerate;
+    int step = winstep * samplerate;
+    int N = (nfft > samples) ? nfft : samples;
+
+    if (highfreq == DBL_MAX)
+        highfreq = samplerate / 2.0;
+    auto pow_spec = power_spectrum(
+        pre_emphasis(signal, preemph), samplerate,
+        winlen, winstep, N, winfunc);
+
+    auto filters = mel_filters(nfilt, N, samplerate, lowfreq, highfreq);
+    AudioFeatureList feat = filters * pow_spec;
+    feat.unaryExpr<double(*)(double)>(zero_to_eps);
+
+    return feat;
+}
+
+std::pair<AudioFeatureList, AudioFeatureList> Features::filter_bank_energy(
+    const AudioSamples &signal, int samplerate,
+    double winlen, double winstep, int nfft,
+    int nfilt, double lowfreq, double highfreq,
+    double preemph, AudioMask(*winfunc)(int length))
+{
+    auto zero_to_eps = [](double x) -> double {
+        return (x == 0) ? std::numeric_limits<double>::epsilon() : x;
+    };
+
+    int samples = winlen * samplerate;
+    int step = winstep * samplerate;
+    int N = (nfft > samples) ? nfft : samples;
+
+    if (highfreq == DBL_MAX)
+        highfreq = samplerate / 2.0;
+    auto pow_spec = power_spectrum(
+        pre_emphasis(signal, preemph), samplerate,
+        winlen, winstep, N, winfunc);
+    AudioFeatureList energy = pow_spec.colwise().sum();
+    energy.unaryExpr<double(*)(double)>(zero_to_eps);
+
+    auto filters = mel_filters(nfilt, N, samplerate, lowfreq, highfreq);
+    AudioFeatureList feat = filters * pow_spec;
+    feat.unaryExpr<double(*)(double)>(zero_to_eps);
+
+    return {feat, energy};
+}
+
+AudioFeatureList Features::mfcc(
     const AudioSamples &signal, int samplerate,
     double winlen, double winstep,
     int nfft, int numcep, int nfilt,
@@ -97,7 +183,7 @@ std::vector<AudioFeature> Features::mfcc(
     };
 
 
-    return std::vector<AudioFeature>();
+    return AudioFeatureList();
 }
 
 

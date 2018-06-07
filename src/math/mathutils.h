@@ -10,6 +10,18 @@ namespace yuki
 {
 	namespace math
 	{
+		template <typename T>
+		struct range_
+		{
+		public:
+			T start, end;
+			bool is_valid() const { return start <= end; }
+		};
+
+		typedef range_<float>  range_float;
+		typedef range_<double> range_double;
+		typedef range_<int>	   range_int;
+
 		/* -----------------------------------------------vec234-------------------------------------------------- */
 		template <typename T> struct vec2_;
 		template <typename T> struct vec3_;

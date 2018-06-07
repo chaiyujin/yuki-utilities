@@ -29,19 +29,28 @@ void test_vec()
 void test_audio()
 {
     using namespace yuki::audio;
+    using namespace yuki::image;
     WAVPCM wav_file;
+
+    auto calc = [](double x) -> double
+    {
+        return std::log10(std::abs(x) + 1e-8) * 20;
+    };
 
     try
     {
-        wav_file.read("../asset/test.wav");
-        auto feature = Features::power_spectrum(wav_file.track(0), wav_file.samplerate());
-        std::cout << feature[0].size() << std::endl;
-        for (int i = 0; i < 10; ++i)
-        {
-            std::cout << feature[0][i] << " ";
-            if (i % 5 == 4) std::cout << endl;
-        }
-        std::cout << endl;
+        wav_file.read("../asset/test1.wav");
+        Eigen::MatrixXd feature = Features::filter_bank(wav_file.track(0), wav_file.samplerate());
+        cout << feature.rows() << " " << feature.cols() << endl;
+        feature = feature.unaryExpr<double(*)(double)>(calc);
+        auto min_ = feature.minCoeff();
+        auto max_ = feature.maxCoeff();
+        cout << min_ << " " << max_ << endl;
+        
+        auto img = ColorMap::colorize_eigen(feature.leftCols(5000), {-150, 100}, ColorMap::Jet);
+        // cv::resize(img, img, cv::Size(900, 240), 0, 0, cv::INTER_NEAREST);
+        cout << img.rows << " " << img.cols << endl;
+        cv::imwrite("../asset/spectrum.jpg", img);
     }
     catch (std::runtime_error &e)
     {
