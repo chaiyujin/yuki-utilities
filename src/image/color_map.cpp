@@ -6,11 +6,12 @@ NAMESPACE_BEGIN(image)
 
 const ColorMap ColorMap::Jet
 {{
+    { 0, 0, 100 },
     { 0, 0, 255 },
     { 0, 255, 255 },
     { 255, 255, 0 },
     { 255, 0, 0 },
-    { 50, 0, 0 },
+    { 100, 0, 0 },
 }};
 const ColorMap ColorMap::Classic
 {{

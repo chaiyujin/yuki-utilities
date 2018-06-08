@@ -5,10 +5,59 @@
 NAMESPACE_BEGIN(yuki)
 NAMESPACE_BEGIN(audio)
 
+
+double  Features::default_winlen            = 0.025;
+double  Features::default_winstep           = 0.010;
+int     Features::default_nfft              = 0;
+int     Features::default_numcep_dct        = 13;
+int     Features::default_nfilt_mel         = 40;
+int     Features::default_ceplifter_mfcc    = 0;
+double  Features::default_preemph           = 0;
+double  Features::dafault_lowfreq           = 0;
+double  Features::dafault_highfreq          = DBL_MAX;
+AudioMask(*Features::default_winfunc)(int)  = Features::Window::ones;
+
 AudioMask Features::Window::ones(int length)
 {
     return AudioMask(length, 1.0);
 }
+
+Eigen::MatrixXd Features::dct(const Eigen::MatrixXd &in, bool normalization)
+{
+    const int N = in.rows();
+    Eigen::MatrixXd ret(in.rows(), in.cols());
+    
+    double *fftw_in  = fftw_alloc_real(N);
+    double *fftw_out = fftw_alloc_real(N);
+
+    // DCT-II (the well-known DCT)
+    auto plan = fftw_plan_r2r_1d(N, fftw_in, fftw_out, FFTW_REDFT10, FFTW_ESTIMATE);
+
+    for (int c = 0; c < in.cols(); ++c)
+    {
+        for (int r = 0; r < N; ++r)
+            fftw_in[r] = in(r, c);
+        fftw_execute(plan);
+        for (int r = 0; r < N; ++r)
+            ret(r, c) = fftw_out[r];
+        if (normalization)
+        {
+            /* f = sqrt(1/(4*N)) if r = 0,
+               f = sqrt(1/(2*N)) otherwise. */
+            ret(0, c) *= std::sqrt(1.0 / (4.0 * (double)N));
+            for (int r = 1; r < N; ++r)
+                ret(r, c) *= std::sqrt(1.0 / (2.0 * (double)N));
+        }
+    }
+
+    fftw_destroy_plan(plan);
+
+    fftw_free(fftw_in);
+    fftw_free(fftw_out);
+
+    return ret;
+}
+
 
 AudioSamples Features::pre_emphasis(const AudioSamples &signal, double preemph)
 {
@@ -60,8 +109,8 @@ AudioFeatureList Features::power_spectrum(
     int N = (nfft > samples) ? nfft : samples;
 
     auto win_mask = winfunc(samples);
-    double *fftw_in = fftw_alloc_real(N);
-    fftw_complex *fftw_out = fftw_alloc_complex(N / 2 + 1);
+    double *        fftw_in  = fftw_alloc_real(N);
+    fftw_complex *  fftw_out = fftw_alloc_complex(N / 2 + 1);
     auto p = fftw_plan_dft_r2c_1d(N, fftw_in, fftw_out, FFTW_ESTIMATE);
     memset(fftw_in, 0, sizeof(double) * N);
 
@@ -92,6 +141,8 @@ AudioFeatureList Features::power_spectrum(
     }
 
     fftw_destroy_plan(p);
+    fftw_free(fftw_in);
+    fftw_free(fftw_out);
     return ret;
 }
 
@@ -117,7 +168,7 @@ AudioFeatureList Features::filter_bank(
 
     auto filters = mel_filters(nfilt, N, samplerate, lowfreq, highfreq);
     AudioFeatureList feat = filters * pow_spec;
-    feat.unaryExpr<double(*)(double)>(zero_to_eps);
+    feat = feat.unaryExpr<double(*)(double)>(zero_to_eps);
 
     return feat;
 }
@@ -136,17 +187,19 @@ std::pair<AudioFeatureList, AudioFeatureList> Features::filter_bank_energy(
     int step = winstep * samplerate;
     int N = (nfft > samples) ? nfft : samples;
 
+    std::cout << "feature " << N << std::endl;
+
     if (highfreq == DBL_MAX)
         highfreq = samplerate / 2.0;
     auto pow_spec = power_spectrum(
         pre_emphasis(signal, preemph), samplerate,
         winlen, winstep, N, winfunc);
     AudioFeatureList energy = pow_spec.colwise().sum();
-    energy.unaryExpr<double(*)(double)>(zero_to_eps);
+    energy = energy.unaryExpr<double(*)(double)>(zero_to_eps);
 
     auto filters = mel_filters(nfilt, N, samplerate, lowfreq, highfreq);
     AudioFeatureList feat = filters * pow_spec;
-    feat.unaryExpr<double(*)(double)>(zero_to_eps);
+    feat = feat.unaryExpr<double(*)(double)>(zero_to_eps);
 
     return {feat, energy};
 }
@@ -159,31 +212,39 @@ AudioFeatureList Features::mfcc(
     double preemph, int ceplifter,
     bool append_energy, AudioMask(*winfunc)(int length))
 {
-
-    auto calc = [&](int n, double *in, fftw_complex *out, AudioFeature &feature) -> void
+    AudioFeatureList fbank, energy;
+    if (!append_energy)
+        fbank.noalias() = filter_bank(signal, samplerate, winlen, winstep, nfft, nfilt, lowfreq, highfreq, preemph, winfunc);
+    else
     {
-        auto p = fftw_plan_dft_r2c_1d(n, in, out, FFTW_ESTIMATE);
-        fftw_execute(p);
-        feature.resize(n / 2 + 1);
-        feature[0] = out[0][0] * out[0][0];
-        for (int i = 1; i < (n + 1) / 2; ++i)
-        {
-            feature[i] = out[i][0] * out[i][0] + out[i][1] * out[i][1];
-        }
-        if (n % 2 == 0)
-            feature[n / 2] = out[n / 2][0] * out[n / 2][0];
+        auto pair = filter_bank_energy(signal, samplerate, winlen, winstep, nfft, nfilt, lowfreq, highfreq, preemph, winfunc);
+        fbank.noalias() = pair.first;
+        energy.noalias() = pair.second;
+    }
 
-        // power_spectrum[0] = out[0]*out[0];  /* DC component */
-        // for (k = 1; k < (N+1)/2; ++k)  /* (k < N/2 rounded up) */
-        //     power_spectrum[k] = out[k]*out[k] + out[N-k]*out[N-k];
-        // if (N % 2 == 0) /* N is even */
-        //     power_spectrum[N/2] = out[N/2]*out[N/2];  /* Nyquist freq. */
+    int rows = std::min(numcep, (int)fbank.rows());
+    fbank = fbank.unaryExpr<double(*)(double)>(std::log);
 
-        fftw_destroy_plan(p);
-    };
-
-
-    return AudioFeatureList();
+    AudioFeatureList after_dct = dct(fbank, true).topRows(rows);
+    if (ceplifter > 0)
+    {
+        /* Apply a cepstral lifter the the matrix of cepstra. This has the effect of increasing the
+           magnitude of the high frequency DCT coeffs */
+        Eigen::MatrixXd lift = Eigen::MatrixXd::Zero(rows, rows);
+        for (int i = 0; i < rows; ++i)
+            lift(i, i) = 1.0 + (ceplifter / 2.0) * std::sin(M_PI * (double)i / (double)ceplifter);
+        after_dct = lift * after_dct;
+    }
+    if (append_energy)
+    {
+        energy = energy.unaryExpr<double((*)(double))>(std::log);
+        after_dct.row(0) << energy.row(0);
+        return after_dct;
+    }
+    else
+    {
+        return after_dct.bottomRows(rows - 1);
+    }
 }
 
 

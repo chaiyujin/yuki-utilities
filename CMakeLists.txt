@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
-option(ENABLE_DEBUG "enable debug log" ON)
-option(ENABLE_GUI "enable nanogui" ON)
+option(ENABLE_DEBUG "enable debug log" OFF)
+option(ENABLE_GUI "enable nanogui" OFF)
 
 # find necessary package
 find_package(Eigen3 REQUIRED)

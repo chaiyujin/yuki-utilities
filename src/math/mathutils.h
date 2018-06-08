@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <memory>
 #include "Eigen/Eigen"
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 namespace yuki
 {
