@@ -81,6 +81,7 @@ public:
         bool    append_energy=true,
         AudioMask(*winfunc)(int length)=default_winfunc);
 
+    // static AudioFeatureList lpc();
 };
 
 NAMESPACE_END(audio)
