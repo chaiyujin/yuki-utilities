@@ -512,6 +512,8 @@ namespace yuki
 
 	namespace math
 	{
+		/* related to audio and dsp */
+
 		template <typename T>
 		T nextpow2(T n)
 		{
@@ -520,6 +522,24 @@ namespace yuki
 			if (p > (int)p) return std::pow(2, (int)p + 1);
 			return n;
 		}
+		/*
+			* The actual computation :
+			*      - in    : the input vector which defines the toeplitz matrix
+			*      - size  : size of in (ie number of elements)
+			*      - order : size of the system to solve. order must be < size -1
+			*      - acoeff: solution (ie ar coefficients). Size must be at last order+1
+			*      - err   : *prediction* error (scalar)
+			*      - kcoeff: reflexion coefficients. Size must be at last equal to equal to order.
+			*      - tmp   : cache, must have at least order elements, if NULL, will be allocated and free in this function
+			*
+			* this function assume all arrays are allocated with the right size, and that
+			* the parameters make sense. No checking is done, must be done before calling
+			* this function: in particular, in[0] must be non zero.
+			*
+			* Returns 0 on success, -1 if a compuation error happened (overflow, underflow
+			* for error calculation)
+		*/
+		int levinson(const double *in, int order, double *acoeff, double *err, double *kcoeff, double *tmp=NULL);
 	}
 
 }

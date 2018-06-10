@@ -121,7 +121,7 @@ AudioFeatureList Features::power_spectrum(
 
     AudioFeatureList ret(N / 2 + 1, frames);
 
-    for (int s = 0; s + samples < signal.size(); s += step)
+    for (int s = 0; s + samples < (int)signal.size(); s += step)
     {
         // fullfill data
         for (int i = 0; i < samples; ++i)
@@ -295,6 +295,50 @@ AudioFeatureList Features::autocorrelation(
     fftw_free(fftw_out);
 
     return ret;
+}
+
+
+AudioFeatureList Features::lpc(
+    const AudioSamples &signal, int samplerate, int order,
+    double  winlen, double  winstep, double  preemph,
+    AudioMask(*winfunc)(int length))
+{
+    auto signal_emph = pre_emphasis(signal, preemph);
+
+    int win_samples = winlen * samplerate;
+    int win_step    = winstep * samplerate;
+    // check if order is valid
+    if (order > signal.size() || order > win_samples)
+        YUKI_ERROR_EXIT("[LPC]: Input signal (or windowed signal) must have length >= order.");
+
+    int frames = 0;
+    if ((int)signal.size() >= win_samples)
+        frames = ((int)signal.size() - win_samples) / win_step + 1;
+
+    auto win_mask = winfunc(win_samples);
+    std::vector<AudioSamples> slices(frames, AudioSamples(win_samples));
+    for (int s = 0, fi = 0; s + win_samples < (int)signal.size(); s += win_step, fi++)
+    {
+        for (int i = 0; i < win_samples; ++i)
+            slices[fi][i] = win_mask[i] * signal[s + i];
+        // avoid div 0 error.
+        if (slices[fi][0] == 0) slices[fi][0] = 1e-10;
+    }
+
+    AudioFeatureList acorre = autocorrelation(slices, false);
+    AudioFeatureList acoeff(order + 1, frames);
+    AudioFeatureList err(1, frames);
+    AudioFeatureList kcoeff(order, frames);
+#pragma omp parallel for
+    for (int i = 0; i < frames; ++i)
+    {
+        math::levinson(
+            acorre.col(i).data(), order,
+            acoeff.col(i).data(),
+            err.col(i).data(),
+            kcoeff.col(i).data());
+    }
+    return acoeff;
 }
 
 

@@ -85,7 +85,12 @@ public:
         const std::vector<AudioSamples> &signal_list,
         bool biased_acorre_estimator=false);
 
-    // static AudioFeatureList lpc();
+    static AudioFeatureList lpc(
+        const AudioSamples &signal, int samplerate, int order,
+        double  winlen      = default_winlen,
+        double  winstep     = default_winstep,
+        double  preemph     = default_preemph,
+        AudioMask(*winfunc)(int length)=default_winfunc);
 };
 
 NAMESPACE_END(audio)

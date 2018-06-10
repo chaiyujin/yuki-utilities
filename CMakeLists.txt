@@ -51,6 +51,7 @@ add_definitions(-std=c++11 -fopenmp)
 
 add_executable(yuki
     ${PROJECT_SOURCE_DIR}/src/main.cpp
+    ${PROJECT_SOURCE_DIR}/src/math/mathutils.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/io_wav.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/features.cpp
     ${PROJECT_SOURCE_DIR}/src/image/color_map.cpp)

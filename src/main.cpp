@@ -33,9 +33,9 @@ void test_audio()
     using namespace yuki::image;
     WAVPCM wav_file;
 
+    wav_file.read("../asset/test1.wav");
     /* spectrum related */
     {
-        wav_file.read("../asset/test1.wav");
         auto save_feat_img = [](const Eigen::MatrixXd &feature, const std::string &filename) -> void
         {
             cout << "save feature into " << filename << endl;
@@ -64,7 +64,12 @@ void test_audio()
         AudioSamples sample({2, 3, -1});
         std::vector<AudioSamples> samples({sample});
         auto acorre = Features::autocorrelation(samples);
-        cout << acorre << endl;
+        cout << "auto correlation of (2, 3, -1): " << acorre.transpose() << endl;
+        auto kcoeff = Features::lpc(wav_file.track(0), wav_file.samplerate(), 12).leftCols(64);
+        cout << "LPC feature:\n";
+        cout << "  feature size:  " << kcoeff.rows() << " x " << kcoeff.cols() << endl;
+        // cout << "  col 0: " << kcoeff.col(0).transpose() << endl;
+        // cout << "  col 10: " << kcoeff.col(10).transpose() << endl;
     }
 }
 
