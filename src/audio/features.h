@@ -81,6 +81,10 @@ public:
         bool    append_energy=true,
         AudioMask(*winfunc)(int length)=default_winfunc);
 
+    static AudioFeatureList autocorrelation(
+        const std::vector<AudioSamples> &signal_list,
+        bool biased_acorre_estimator=false);
+
     // static AudioFeatureList lpc();
 };
 

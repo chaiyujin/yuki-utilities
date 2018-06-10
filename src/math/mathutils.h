@@ -510,4 +510,16 @@ namespace yuki
 
 	}
 
+	namespace math
+	{
+		template <typename T>
+		T nextpow2(T n)
+		{
+			if (n <= 1) { return 1; }
+			double p = std::log2(n);
+			if (p > (int)p) return std::pow(2, (int)p + 1);
+			return n;
+		}
+	}
+
 }

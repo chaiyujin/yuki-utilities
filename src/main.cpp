@@ -10,6 +10,7 @@ void test_image();
 
 int main()
 {
+    using namespace yuki::math;
     test_vec();
     test_audio();
     test_image();
@@ -32,7 +33,7 @@ void test_audio()
     using namespace yuki::image;
     WAVPCM wav_file;
 
-    try
+    /* spectrum related */
     {
         wav_file.read("../asset/test1.wav");
         auto save_feat_img = [](const Eigen::MatrixXd &feature, const std::string &filename) -> void
@@ -58,9 +59,12 @@ void test_audio()
         save_feat_img(logfbank, "../asset/log_fbank.jpg");
         save_feat_img(mfcc, "../asset/mfcc.jpg");
     }
-    catch (std::runtime_error &e)
+    /* linear prediction  */
     {
-        cerr << e.what() << endl;
+        AudioSamples sample({2, 3, -1});
+        std::vector<AudioSamples> samples({sample});
+        auto acorre = Features::autocorrelation(samples);
+        cout << acorre << endl;
     }
 }
 

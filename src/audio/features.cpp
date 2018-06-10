@@ -1,5 +1,6 @@
 #include "features.h"
 #include "fftw3.h"
+#include "math/mathutils.h"
 #include <iostream>
 
 NAMESPACE_BEGIN(yuki)
@@ -245,6 +246,55 @@ AudioFeatureList Features::mfcc(
     {
         return after_dct.bottomRows(rows - 1);
     }
+}
+
+AudioFeatureList Features::autocorrelation(
+    const std::vector<AudioSamples> &signal_list,
+    bool biased_acorre_estimator)
+{
+    if (signal_list.size() == 0) return AudioFeatureList();
+    int maxlag = (int)signal_list[0].size();
+    int N = math::nextpow2(maxlag * 2 - 1);
+    
+    double *        fftw_in  = fftw_alloc_real(N);
+    fftw_complex *  fftw_cp  = fftw_alloc_complex(N);
+    double *        fftw_out = fftw_alloc_real(N);
+
+    auto plan_fft  = fftw_plan_dft_r2c_1d(N, fftw_in, fftw_cp,  FFTW_ESTIMATE);
+    auto plan_ifft = fftw_plan_dft_c2r_1d(N, fftw_cp, fftw_out, FFTW_ESTIMATE);
+    memset(fftw_in,  0, sizeof(double) * N);
+    memset(fftw_out, 0, sizeof(double) * N);
+
+    AudioFeatureList ret(maxlag + 1, signal_list.size());
+    for (size_t i = 0; i < signal_list.size(); ++i)
+    {
+        for (int j = 0; j < maxlag; ++j)
+            fftw_in[j] = signal_list[i][j];
+        fftw_execute(plan_fft);
+        // sqaure
+        for (int j = 0; j < N; ++j)
+        {
+            fftw_cp[j][0] = fftw_cp[j][0] * fftw_cp[j][0] + fftw_cp[j][1] * fftw_cp[j][1];
+            fftw_cp[j][1] = 0;
+        }
+        fftw_execute(plan_ifft);
+        // copy result
+        for (int j = 0; j < maxlag + 1; ++j)
+        {
+            fftw_out[j] /= (double)N;
+            ret(j, i) = (biased_acorre_estimator)
+                ? fftw_out[j] / (double)maxlag
+                : fftw_out[j];
+        }
+    }
+
+    fftw_destroy_plan(plan_fft);
+    fftw_destroy_plan(plan_ifft);
+    fftw_free(fftw_in);
+    fftw_free(fftw_cp);
+    fftw_free(fftw_out);
+
+    return ret;
 }
 
 
