@@ -1,3 +1,4 @@
+#include "core.h"
 #include "math/mathutils.h"
 #include "audio/io_wav.h"
 #include "audio/features.h"
@@ -61,16 +62,22 @@ void test_audio()
     }
     /* linear prediction  */
     {
+        using namespace yuki;
         AudioSamples sample({2, 3, -1});
         std::vector<AudioSamples> samples({sample});
         auto acorre = Features::autocorrelation(samples);
         cout << "auto correlation of (2, 3, -1): " << acorre.transpose() << endl;
-        auto kcoeff = Features::lpc(wav_file.track(0), wav_file.samplerate(), 12).leftCols(64);
+        Eigen::MatrixXd lpc = Features::lpc(wav_file.track(0), wav_file.samplerate(), 12).leftCols(64);
         cout << "LPC feature:\n";
-        cout << "  feature size:  " << kcoeff.rows() << " x " << kcoeff.cols() << endl;
-        // cout << "  col 0: " << kcoeff.col(0).transpose() << endl;
-        // cout << "  col 10: " << kcoeff.col(10).transpose() << endl;
+        cout << "  feature size:  " << lpc.rows() << " x " << lpc.cols() << endl;
+        // cout << "  col 0: " << lpc.col(0).transpose() << endl;
+        // cout << "  col 10: " << lpc.col(10).transpose() << endl;
+
+        std::vector<std::vector<double>> formants = Features::formants(lpc.leftCols(1), wav_file.samplerate());
+        cout << formants[0] << endl;
     }
+    double coeff[3] = {3.2, 2, 1};
+    roots(coeff, 3);
 }
 
 void test_image()

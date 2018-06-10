@@ -1,7 +1,9 @@
 #include "features.h"
 #include "fftw3.h"
 #include "math/mathutils.h"
+#include "unsupported/Eigen/Polynomials"
 #include <iostream>
+#include <complex>
 
 NAMESPACE_BEGIN(yuki)
 NAMESPACE_BEGIN(audio)
@@ -340,6 +342,60 @@ AudioFeatureList Features::lpc(
     }
     return acoeff;
 }
+
+// rts = np.roots(A)
+// # rts = [r for r in rts if np.imag(r) >= 0]
+// angz = np.arctan2(np.imag(rts), np.real(rts))
+// # Get frequencies.
+// frqs = angz * (rate / 2 / (2 * np.pi))
+// bw = -0.5 * (rate / 2 / (2 * (np.pi))) * np.log(np.abs(rts))
+// formants = [frqs[i] for i in range(len(rts))
+//             if np.imag(rts[i]) >= 0 and frqs[i] > 90 and bw[i] < 400]
+
+std::vector<std::vector<double>> Features::formants(
+    const AudioFeatureList &lpc_A, int samplerate)
+{
+    std::vector<std::vector<double>> ret(lpc_A.cols());
+    double F = samplerate / 2.0;
+
+    const int rows = lpc_A.rows();
+// #pragma omp parallel for
+    for (int i = 0; i < lpc_A.cols(); ++i)
+    {
+        for (int j = 0; j < rows; ++j)
+        {
+            std::complex<double> rt = std::sqrt(std::complex<double>(lpc_A(j, i), 0));
+            if (rt.imag() < 0) continue;
+            double ang = std::arg(rt);
+            double frq = ang * (F / (2.0 * M_PI));
+            double bw = -0.5 * (F / (2.0 * M_PI)) * std::log(std::abs(lpc_A(j, i)));
+            std::cout << lpc_A(j, i) << " " << rt << " " << ang << std::endl;
+            // std::cout << frq << " " << lpc_A(j, i) << " " << ang << "\n";
+            if (frq > 90 && bw < 400)
+                ret[i].push_back(frq);
+        }
+        std::cout << std::endl;
+    }
+    return ret;
+}
+
+// ----
+// [ 1.         -1.6076897   1.41015801 -1.35381894  0.99734197 -0.96446114
+//   0.93694613 -0.47199929  0.17262492  0.12412071 -0.28367405  0.03895552
+//   0.06426487]
+// [ 0.85982484+0.04936925j  0.85982484-0.04936925j  0.74569924+0.3523369j
+//   0.74569924-0.3523369j   0.34601531+0.86956303j  0.34601531-0.86956303j
+//  -0.06121915+0.88904224j -0.06121915-0.88904224j -0.63112267+0.68136624j
+//  -0.63112267-0.68136624j -0.45535271+0.07037613j -0.45535271-0.07037613j]
+// [ 0.05735482 -0.05735482  0.44140003 -0.44140003  1.19208554 -1.19208554
+//   1.63954746 -1.63954746  2.31793204 -2.31793204  2.9882529  -2.9882529 ]
+// [   36.51321345   -36.51321345   281.00398362  -281.00398362
+//    758.90522525  -758.90522525  1043.76833195 -1043.76833195
+//   1475.64136661 -1475.64136661  1902.38087802 -1902.38087802]
+// [ 47.54941664  47.54941664  61.33126405  61.33126405  21.0946594
+//   21.0946594   36.68372069  36.68372069  23.52823808  23.52823808
+//  246.65198527 246.65198527]
+// [281.00398362059826, 758.9052252516616, 1043.7683319484013, 1475.6413666084752, 1902.3808780187405]
 
 
 NAMESPACE_END(audio)

@@ -92,6 +92,24 @@ namespace yuki
 	};
 }
 
+#include <iostream>
+#include <vector>
+namespace yuki
+{
+	template <typename T>
+	inline std::ostream &operator<<(std::ostream &out, const std::vector<T> &d)
+	{
+		for (size_t i = 0; i < d.size(); ++i)
+		{
+			out << d[i] << " ";
+			if (i % 5 == 4) out << std::endl;
+		}
+		out << std::endl;
+		return out;
+	}
+
+}
+
 
 #define NAMESPACE_BEGIN(name) namespace name {
 #define NAMESPACE_END(name) }

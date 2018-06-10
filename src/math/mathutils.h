@@ -512,7 +512,7 @@ namespace yuki
 
 	namespace math
 	{
-		/* related to audio and dsp */
+		/* used frequently in dsp */
 
 		template <typename T>
 		T nextpow2(T n)
@@ -540,6 +540,14 @@ namespace yuki
 			* for error calculation)
 		*/
 		int levinson(const double *in, int order, double *acoeff, double *err, double *kcoeff, double *tmp=NULL);
+
+		/*
+			* Return the roots of a polynomial with coefficients given in p.
+			* The values in the rank-1 array `p` are coefficients of a polynomial.
+			* If the length of `p` is n then the polynomial is described by::
+			*     p[0] * x**(n - 1) + p[1] * x**(n-2) + ... + p[n-2]*x + p[n - 1]
+		*/
+		std::vector<std::complex<double>> roots(double *p, int n);
 	}
 
 }

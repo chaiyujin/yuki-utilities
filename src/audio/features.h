@@ -91,6 +91,9 @@ public:
         double  winstep     = default_winstep,
         double  preemph     = default_preemph,
         AudioMask(*winfunc)(int length)=default_winfunc);
+
+    static std::vector<std::vector<double>> formants(
+        const AudioFeatureList &lpc_A, int samplerate); 
 };
 
 NAMESPACE_END(audio)
