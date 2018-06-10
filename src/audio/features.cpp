@@ -1,7 +1,7 @@
 #include "features.h"
 #include "fftw3.h"
 #include "math/mathutils.h"
-#include "unsupported/Eigen/Polynomials"
+#include "signal_process.h"
 #include <iostream>
 #include <complex>
 
@@ -23,83 +23,6 @@ AudioMask(*Features::default_winfunc)(int)  = Features::Window::ones;
 AudioMask Features::Window::ones(int length)
 {
     return AudioMask(length, 1.0);
-}
-
-Eigen::MatrixXd Features::dct(const Eigen::MatrixXd &in, bool normalization)
-{
-    const int N = in.rows();
-    Eigen::MatrixXd ret(in.rows(), in.cols());
-    
-    double *fftw_in  = fftw_alloc_real(N);
-    double *fftw_out = fftw_alloc_real(N);
-
-    // DCT-II (the well-known DCT)
-    auto plan = fftw_plan_r2r_1d(N, fftw_in, fftw_out, FFTW_REDFT10, FFTW_ESTIMATE);
-
-    for (int c = 0; c < in.cols(); ++c)
-    {
-        for (int r = 0; r < N; ++r)
-            fftw_in[r] = in(r, c);
-        fftw_execute(plan);
-        for (int r = 0; r < N; ++r)
-            ret(r, c) = fftw_out[r];
-        if (normalization)
-        {
-            /* f = sqrt(1/(4*N)) if r = 0,
-               f = sqrt(1/(2*N)) otherwise. */
-            ret(0, c) *= std::sqrt(1.0 / (4.0 * (double)N));
-            for (int r = 1; r < N; ++r)
-                ret(r, c) *= std::sqrt(1.0 / (2.0 * (double)N));
-        }
-    }
-
-    fftw_destroy_plan(plan);
-
-    fftw_free(fftw_in);
-    fftw_free(fftw_out);
-
-    return ret;
-}
-
-
-AudioSamples Features::pre_emphasis(const AudioSamples &signal, double preemph)
-{
-    if (preemph > 0)
-    {
-        AudioSamples ret(signal.size());
-        ret[0] = signal[0];
-        for (size_t i = 1; i < signal.size(); ++i)
-        {
-            ret[i] = signal[i] - preemph * signal[i - 1];
-        }
-        return ret;
-    }
-    else
-        return signal;
-}
-
-Eigen::MatrixXd Features::mel_filters(int nfilt, int nfft, int samplerate, double lowfreq, double highfreq)
-{
-    Eigen::MatrixXd filters(nfilt, nfft / 2 + 1);
-    if (highfreq > samplerate / 2)
-        highfreq = samplerate / 2.0;
-    double low_mel = hz2mel(lowfreq);
-    double high_mel = hz2mel(highfreq);
-    double mel_step = (high_mel - low_mel) / (nfilt + 1);  // triangles, need one more point
-    std::vector<int> bin(nfilt + 2);
-    for (double mel = low_mel, i = 0; mel < high_mel; mel += mel_step, i++)
-        bin[i] = (int)std::floor(mel2hz(mel) * (nfft + 1.0) / samplerate);
-    bin.back() = (int)std::floor(highfreq * (nfft + 1.0) / samplerate);
-    // clear zero
-    filters.setZero();
-    for (int i = 0; i < nfilt; ++i)
-    {
-        for (int j = bin[i]; j < bin[i + 1]; ++j)
-            filters(i, j) = (double)(j - bin[i]) / (double)(bin[i + 1] - bin[i]);
-        for (int j = bin[i + 1]; j < bin[i + 2]; ++j)
-            filters(i, j) = (double)(j - bin[i + 2]) / (double)(bin[i + 1] - bin[i + 2]);
-    }
-    return filters;
 }
 
 AudioFeatureList Features::power_spectrum(
@@ -166,10 +89,10 @@ AudioFeatureList Features::filter_bank(
     if (highfreq == DBL_MAX)
         highfreq = samplerate / 2.0;
     auto pow_spec = power_spectrum(
-        pre_emphasis(signal, preemph), samplerate,
+        DSP::pre_emphasis(signal, preemph), samplerate,
         winlen, winstep, N, winfunc);
 
-    auto filters = mel_filters(nfilt, N, samplerate, lowfreq, highfreq);
+    auto filters = DSP::mel_filters(nfilt, N, samplerate, lowfreq, highfreq);
     AudioFeatureList feat = filters * pow_spec;
     feat = feat.unaryExpr<double(*)(double)>(zero_to_eps);
 
@@ -195,12 +118,12 @@ std::pair<AudioFeatureList, AudioFeatureList> Features::filter_bank_energy(
     if (highfreq == DBL_MAX)
         highfreq = samplerate / 2.0;
     auto pow_spec = power_spectrum(
-        pre_emphasis(signal, preemph), samplerate,
+        DSP::pre_emphasis(signal, preemph), samplerate,
         winlen, winstep, N, winfunc);
     AudioFeatureList energy = pow_spec.colwise().sum();
     energy = energy.unaryExpr<double(*)(double)>(zero_to_eps);
 
-    auto filters = mel_filters(nfilt, N, samplerate, lowfreq, highfreq);
+    auto filters = DSP::mel_filters(nfilt, N, samplerate, lowfreq, highfreq);
     AudioFeatureList feat = filters * pow_spec;
     feat = feat.unaryExpr<double(*)(double)>(zero_to_eps);
 
@@ -228,7 +151,7 @@ AudioFeatureList Features::mfcc(
     int rows = std::min(numcep, (int)fbank.rows());
     fbank = fbank.unaryExpr<double(*)(double)>(std::log);
 
-    AudioFeatureList after_dct = dct(fbank, true).topRows(rows);
+    AudioFeatureList after_dct = DSP::dct(fbank, true).topRows(rows);
     if (ceplifter > 0)
     {
         /* Apply a cepstral lifter the the matrix of cepstra. This has the effect of increasing the
@@ -250,62 +173,13 @@ AudioFeatureList Features::mfcc(
     }
 }
 
-AudioFeatureList Features::autocorrelation(
-    const std::vector<AudioSamples> &signal_list,
-    bool biased_acorre_estimator)
-{
-    if (signal_list.size() == 0) return AudioFeatureList();
-    int maxlag = (int)signal_list[0].size();
-    int N = math::nextpow2(maxlag * 2 - 1);
-    
-    double *        fftw_in  = fftw_alloc_real(N);
-    fftw_complex *  fftw_cp  = fftw_alloc_complex(N);
-    double *        fftw_out = fftw_alloc_real(N);
-
-    auto plan_fft  = fftw_plan_dft_r2c_1d(N, fftw_in, fftw_cp,  FFTW_ESTIMATE);
-    auto plan_ifft = fftw_plan_dft_c2r_1d(N, fftw_cp, fftw_out, FFTW_ESTIMATE);
-    memset(fftw_in,  0, sizeof(double) * N);
-    memset(fftw_out, 0, sizeof(double) * N);
-
-    AudioFeatureList ret(maxlag + 1, signal_list.size());
-    for (size_t i = 0; i < signal_list.size(); ++i)
-    {
-        for (int j = 0; j < maxlag; ++j)
-            fftw_in[j] = signal_list[i][j];
-        fftw_execute(plan_fft);
-        // sqaure
-        for (int j = 0; j < N; ++j)
-        {
-            fftw_cp[j][0] = fftw_cp[j][0] * fftw_cp[j][0] + fftw_cp[j][1] * fftw_cp[j][1];
-            fftw_cp[j][1] = 0;
-        }
-        fftw_execute(plan_ifft);
-        // copy result
-        for (int j = 0; j < maxlag + 1; ++j)
-        {
-            fftw_out[j] /= (double)N;
-            ret(j, i) = (biased_acorre_estimator)
-                ? fftw_out[j] / (double)maxlag
-                : fftw_out[j];
-        }
-    }
-
-    fftw_destroy_plan(plan_fft);
-    fftw_destroy_plan(plan_ifft);
-    fftw_free(fftw_in);
-    fftw_free(fftw_cp);
-    fftw_free(fftw_out);
-
-    return ret;
-}
-
 
 AudioFeatureList Features::lpc(
     const AudioSamples &signal, int samplerate, int order,
     double  winlen, double  winstep, double  preemph,
     AudioMask(*winfunc)(int length))
 {
-    auto signal_emph = pre_emphasis(signal, preemph);
+    auto signal_emph = DSP::pre_emphasis(signal, preemph);
 
     int win_samples = winlen * samplerate;
     int win_step    = winstep * samplerate;
@@ -327,7 +201,7 @@ AudioFeatureList Features::lpc(
         if (slices[fi][0] == 0) slices[fi][0] = 1e-10;
     }
 
-    AudioFeatureList acorre = autocorrelation(slices, false);
+    AudioFeatureList acorre = DSP::autocorrelation(slices, false);
     AudioFeatureList acoeff(order + 1, frames);
     AudioFeatureList err(1, frames);
     AudioFeatureList kcoeff(order, frames);
@@ -343,14 +217,6 @@ AudioFeatureList Features::lpc(
     return acoeff;
 }
 
-// rts = np.roots(A)
-// # rts = [r for r in rts if np.imag(r) >= 0]
-// angz = np.arctan2(np.imag(rts), np.real(rts))
-// # Get frequencies.
-// frqs = angz * (rate / 2 / (2 * np.pi))
-// bw = -0.5 * (rate / 2 / (2 * (np.pi))) * np.log(np.abs(rts))
-// formants = [frqs[i] for i in range(len(rts))
-//             if np.imag(rts[i]) >= 0 and frqs[i] > 90 and bw[i] < 400]
 
 std::vector<std::vector<double>> Features::formants(
     const AudioFeatureList &lpc_A, int samplerate)
@@ -362,40 +228,20 @@ std::vector<std::vector<double>> Features::formants(
 // #pragma omp parallel for
     for (int i = 0; i < lpc_A.cols(); ++i)
     {
-        for (int j = 0; j < rows; ++j)
+        auto rts = math::roots(lpc_A.col(i).data(), rows);
+        for (int j = 0; j < rts.size(); ++j)
         {
-            std::complex<double> rt = std::sqrt(std::complex<double>(lpc_A(j, i), 0));
-            if (rt.imag() < 0) continue;
-            double ang = std::arg(rt);
+            if (rts[j].imag() < 0) continue;
+            double ang = std::arg(rts[j]);
             double frq = ang * (F / (2.0 * M_PI));
-            double bw = -0.5 * (F / (2.0 * M_PI)) * std::log(std::abs(lpc_A(j, i)));
-            std::cout << lpc_A(j, i) << " " << rt << " " << ang << std::endl;
-            // std::cout << frq << " " << lpc_A(j, i) << " " << ang << "\n";
-            if (frq > 90 && bw < 400)
+            double bwd = -0.5 * (F / (2.0 * M_PI)) * std::log(std::abs(rts[j]));
+            if (frq > 90 && bwd < 400)
                 ret[i].push_back(frq);
         }
-        std::cout << std::endl;
+        std::sort(ret[i].begin(), ret[i].end());
     }
     return ret;
 }
-
-// ----
-// [ 1.         -1.6076897   1.41015801 -1.35381894  0.99734197 -0.96446114
-//   0.93694613 -0.47199929  0.17262492  0.12412071 -0.28367405  0.03895552
-//   0.06426487]
-// [ 0.85982484+0.04936925j  0.85982484-0.04936925j  0.74569924+0.3523369j
-//   0.74569924-0.3523369j   0.34601531+0.86956303j  0.34601531-0.86956303j
-//  -0.06121915+0.88904224j -0.06121915-0.88904224j -0.63112267+0.68136624j
-//  -0.63112267-0.68136624j -0.45535271+0.07037613j -0.45535271-0.07037613j]
-// [ 0.05735482 -0.05735482  0.44140003 -0.44140003  1.19208554 -1.19208554
-//   1.63954746 -1.63954746  2.31793204 -2.31793204  2.9882529  -2.9882529 ]
-// [   36.51321345   -36.51321345   281.00398362  -281.00398362
-//    758.90522525  -758.90522525  1043.76833195 -1043.76833195
-//   1475.64136661 -1475.64136661  1902.38087802 -1902.38087802]
-// [ 47.54941664  47.54941664  61.33126405  61.33126405  21.0946594
-//   21.0946594   36.68372069  36.68372069  23.52823808  23.52823808
-//  246.65198527 246.65198527]
-// [281.00398362059826, 758.9052252516616, 1043.7683319484013, 1475.6413666084752, 1902.3808780187405]
 
 
 NAMESPACE_END(audio)

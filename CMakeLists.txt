@@ -47,13 +47,14 @@ else()
     add_definitions(-O2)
 endif()
 
-add_definitions(-std=c++11 -fopenmp)
+add_definitions(-std=c++11)
 
 add_executable(yuki
     ${PROJECT_SOURCE_DIR}/src/main.cpp
     ${PROJECT_SOURCE_DIR}/src/math/mathutils.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/io_wav.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/features.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/signal_process.cpp
     ${PROJECT_SOURCE_DIR}/src/image/color_map.cpp)
 target_link_libraries(yuki
     Eigen3::Eigen

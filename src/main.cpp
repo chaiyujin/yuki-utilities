@@ -2,9 +2,11 @@
 #include "math/mathutils.h"
 #include "audio/io_wav.h"
 #include "audio/features.h"
+#include "audio/signal_process.h"
 #include "image/image.h"
 
 using namespace std;
+using namespace yuki;
 void test_vec();
 void test_audio();
 void test_image();
@@ -62,22 +64,24 @@ void test_audio()
     }
     /* linear prediction  */
     {
-        using namespace yuki;
         AudioSamples sample({2, 3, -1});
         std::vector<AudioSamples> samples({sample});
-        auto acorre = Features::autocorrelation(samples);
+        auto acorre = DSP::autocorrelation(samples);
         cout << "auto correlation of (2, 3, -1): " << acorre.transpose() << endl;
         Eigen::MatrixXd lpc = Features::lpc(wav_file.track(0), wav_file.samplerate(), 12).leftCols(64);
         cout << "LPC feature:\n";
         cout << "  feature size:  " << lpc.rows() << " x " << lpc.cols() << endl;
         // cout << "  col 0: " << lpc.col(0).transpose() << endl;
         // cout << "  col 10: " << lpc.col(10).transpose() << endl;
-
-        std::vector<std::vector<double>> formants = Features::formants(lpc.leftCols(1), wav_file.samplerate());
-        cout << formants[0] << endl;
+        std::vector<std::vector<double>> formants = Features::formants(lpc.leftCols(64), wav_file.samplerate());
+        cout << "Formants:\n";
+        cout << "  " << formants[0] << endl;
+        
+        auto WH_ = DSP::freqz(1, lpc.col(0));
+        auto WH = DSP::WH_to_FreqdB(WH_, wav_file.samplerate() / 2.0);
+        auto H = WH.col(1);
+        cout << H.topRows(10) << endl;
     }
-    double coeff[3] = {3.2, 2, 1};
-    roots(coeff, 3);
 }
 
 void test_image()

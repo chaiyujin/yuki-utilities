@@ -27,16 +27,7 @@ public:
     static double   dafault_lowfreq;
     static double   dafault_highfreq;
     static AudioMask(*default_winfunc)(int);
-    
 
-    static double hz2mel(double hz) { return 2595.0 * std::log10(1 + hz / 700.0); }
-    static double mel2hz(double mel) { return 700.0 * (std::pow(10, mel / 2595.0) - 1); }
-    static Eigen::MatrixXd dct(const Eigen::MatrixXd &in, bool normalization=true);
-
-    // return (nfilt, nfft / 2 + 1),  which are nfilt triangle filters.
-    static Eigen::MatrixXd mel_filters(int nfilt, int nfft, int samplerate, double lowfreq, double highfreq);
-
-    static AudioSamples pre_emphasis(const AudioSamples &signal, double preemph);
 
     static AudioFeatureList power_spectrum(
         const AudioSamples &signal, int samplerate,
@@ -81,10 +72,6 @@ public:
         bool    append_energy=true,
         AudioMask(*winfunc)(int length)=default_winfunc);
 
-    static AudioFeatureList autocorrelation(
-        const std::vector<AudioSamples> &signal_list,
-        bool biased_acorre_estimator=false);
-
     static AudioFeatureList lpc(
         const AudioSamples &signal, int samplerate, int order,
         double  winlen      = default_winlen,
@@ -92,8 +79,13 @@ public:
         double  preemph     = default_preemph,
         AudioMask(*winfunc)(int length)=default_winfunc);
 
+    /*
+     * formants estimation,
+     * reference: https://www.mathworks.com/help/signal/ug/formant-estimation-with-lpc-coefficients.html
+    */
     static std::vector<std::vector<double>> formants(
         const AudioFeatureList &lpc_A, int samplerate); 
+
 };
 
 NAMESPACE_END(audio)

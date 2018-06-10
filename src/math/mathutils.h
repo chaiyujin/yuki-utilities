@@ -547,7 +547,21 @@ namespace yuki
 			* If the length of `p` is n then the polynomial is described by::
 			*     p[0] * x**(n - 1) + p[1] * x**(n-2) + ... + p[n-2]*x + p[n - 1]
 		*/
-		std::vector<std::complex<double>> roots(double *p, int n);
+		std::vector<std::complex<double>> roots(const double *p, int n);
+
+		/*
+			Evaluate a polynomial at specific values.
+    		If `p` is of length N, this function returns the value:
+        	``p[0]*x**(N-1) + p[1]*x**(N-2) + ... + p[N-2]*x + p[N-1]`
+		*/
+		template <typename T, typename U>
+		T polyval(const U *p, int n, T x, bool reverse=false)
+		{
+			T ret(0);
+			for (int i = 0; i < n; ++i)
+				ret = ret * x + ((reverse)? p[n - 1 - i] : p[i]);
+			return ret;
+		}
 	}
 
 }

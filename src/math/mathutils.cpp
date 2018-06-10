@@ -44,7 +44,7 @@ int levinson(const double *in, int order, double *acoeff, double *err, double *k
 }
 
 
-std::vector<std::complex<double>> roots(double *p, int n)
+std::vector<std::complex<double>> roots(const double *p, int n)
 {
     Eigen::MatrixXd mat(n - 1, n - 1);
     mat.setZero();
@@ -53,8 +53,10 @@ std::vector<std::complex<double>> roots(double *p, int n)
         mat(n - i - 1, n - 2) = -p[i] / p[0];
     Eigen::ComplexEigenSolver<Eigen::MatrixXd> solver;
     solver.compute(mat);
-    std::cout << solver.eigenvalues() << std::endl;
-    return std::vector<std::complex<double>>();
+    std::vector<std::complex<double>> ret;
+    for (int i = 0; i < solver.eigenvalues().size(); ++i)
+        ret.push_back(std::complex<double>(solver.eigenvalues()[i]));
+    return ret;
 }
 
 }}
