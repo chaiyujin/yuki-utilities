@@ -11,6 +11,68 @@
 namespace yuki
 {
 	namespace math
+	{	/* --------------------------------------- easy function ------------------------------------------- */
+		template <typename T>
+		T clamp_value(const T &x, const T &a, const T &b)
+		{
+			if (x < a) return a;
+			if (b < x) return b;
+			return x;
+		}
+		
+		/* vector utils */
+		// find the max in vector, in [s, e)
+		template <typename T>
+		T max_element(const std::vector<T> &vec, int s = 0, int e = INT32_MAX)
+		{
+			if ((int)vec.size() <= s) YUKI_ERROR_EXIT("[math]: vector is too short.");
+			T ret = vec[s];
+			e = clamp_value(e, 0, (int)vec.size());
+			for (int i = s + 1; i < e; ++i)
+				if (vec[i] > ret) ret = vec[i];
+			return ret;
+		}
+		template <typename T>
+		T min_element(const std::vector<T> &vec, int s = 0, int e = INT32_MAX)
+		{
+			if ((int)vec.size() <= s) YUKI_ERROR_EXIT("[math]: vector is too short.");
+			T ret = vec[s];
+			e = clamp_value(e, 0, (int)vec.size());
+			for (int i = s + 1; i < e; ++i)
+				if (vec[i] < ret) ret = vec[i];
+			return ret;
+		}
+		template <typename T>
+		T accumlate_mul(const std::vector<T> &vec, int s = 0, int e = INT32_MAX)
+		{
+			T ret(1);
+			if (e < 0) e += (int)vec.size();
+			e = clamp_value(e, 0, (int)vec.size());
+			for (int i = s; i < e; ++i) ret *= vec[i];
+			return ret;
+		}
+		template <typename T>
+		T accumlate_add(const std::vector<T> &vec, int s = 0, int e = INT32_MAX)
+		{
+			T ret(0);
+			if (e < 0) e += (int)vec.size();
+			e = clamp_value(e, 0, (int)vec.size());
+			for (int i = s; i < e; ++i) ret += vec[i];
+			return ret;
+		}
+		template <typename T>
+		std::vector<T> slice(const std::vector<T> &v, int s = 0, int e = INT32_MAX)
+		{
+			if (e < 0) e += (int)v.size();
+			e = clamp_value(e, 0, (int)v.size());
+			if (s >= e)
+				return std::vector<T>();
+			else
+				return std::vector<T>(v.cbegin() + s, v.cbegin() + e + 1);
+		}
+	}
+
+	namespace math
 	{
 		template <typename T>
 		struct range_
@@ -39,10 +101,23 @@ namespace yuki
 			vec2_(const vec3_<T> &b);
 			vec2_(const vec4_<T> &b);
 			bool isnan() const { return std::isnan(x) || std::isnan(y); }
-			T * operator&() { return &x; }
-			const T * operator&() const { return &x; }
-			bool operator<(const vec2_ &b) const { return (x < b.x || (x == b.x && y < b.y)); }
-			bool operator==(const vec2_ &b) const { return x == b.x && y == b.y; }
+			T &w() { return x; } const T &w() const { return x; }
+			T &h() { return y; } const T &h() const { return y; }
+			T * operator&() 									   { return &x; }
+			const T * operator&() 							 const { return &x; }
+			T &operator[](int idx) 							 	   { if (idx == 0) return x; else if (idx == 1) return y; }
+			const T &operator[](int idx) 					 const { if (idx == 0) return x; else if (idx == 1) return y; }
+			bool operator<(const vec2_ &b) 					 const { return (x < b.x || (x == b.x && y < b.y)); }
+			bool operator==(const vec2_ &b) 				 const { return x == b.x && y == b.y; }
+			vec2_ operator-() 								 const { return vec2_(-x, -y); }
+			vec2_ operator+(const vec2_ &b) 				 const { return vec2_(x + b.x, y + b.y); }
+			vec2_ operator-(const vec2_ &b) 				 const { return vec2_(x - b.x, y - b.y); }
+			template <typename U> vec2_ operator/(const U v) const { return vec2_(x / (T)v, y / (T)v); }
+			template <typename U> vec2_ operator*(const U v) const { return vec2_(x * (T)v, y * (T)v); }
+			vec2_ normalize() const {
+				T length = sqrt(x * x + y * y);
+				return vec2_(x / length, y / length);
+			}
 		};
 
 		template <typename T>
@@ -58,28 +133,18 @@ namespace yuki
 			T &r() { return x; } const T &r() const { return x; }
 			T &g() { return y; } const T &g() const { return y; }
 			T &b() { return z; } const T &b() const { return z; }
-			T * operator&() { return &x; }
-			const T * operator&() const { return &x; }
-			bool operator<(const vec3_ &b) const { return (x < b.x || (x == b.x && y < b.y) || (x == b.x && y == b.y && z < b.z)); }
-			bool operator==(const vec3_ &b) const { return x == b.x && y == b.y && z == b.z; }
-			T &operator[](int idx) { if (idx == 0) return x; else if (idx == 1) return y; else return z;}
-			const T &operator[](int idx) const { if (idx == 0) return x; else if (idx == 1) return y; else return z;}
-			vec3_ operator+(const vec3_ &b) const
-			{
-				return vec3_(x + b.x, y + b.y, z + b.z);
-			}
-			template <typename U>
-			vec3_ operator/(const U v) const
-			{
-				return vec3_(x / (T)v, y / (T)v, z / (T)v);
-			}
-			template <typename U>
-			vec3_ operator*(const U v) const
-			{
-				return vec3_(x * (T)v, y * (T)v, z * (T)v);
-			}
-			vec3_ normalize() const
-			{
+			T * operator&() 									   { return &x; }
+			const T * operator&() 							 const { return &x; }
+			T &operator[](int idx) 							 	   { if (idx == 0) return x; else if (idx == 1) return y; else if (idx == 2) return z;}
+			const T &operator[](int idx) 					 const { if (idx == 0) return x; else if (idx == 1) return y; else if (idx == 2) return z;}
+			bool operator<(const vec3_ &b) 					 const { return (x < b.x || (x == b.x && y < b.y) || (x == b.x && y == b.y && z < b.z)); }
+			bool operator==(const vec3_ &b) 				 const { return x == b.x && y == b.y && z == b.z; }
+			vec3_ operator-() 								 const { return vec3_(-x, -y, -z); }
+			vec3_ operator+(const vec3_ &b) 				 const { return vec3_(x + b.x, y + b.y, z + b.z); }
+			vec3_ operator-(const vec3_ &b) 				 const { return vec3_(x - b.x, y - b.y, z - b.z); }
+			template <typename U> vec3_ operator/(const U v) const { return vec3_(x / (T)v, y / (T)v, z / (T)v); }
+			template <typename U> vec3_ operator*(const U v) const { return vec3_(x * (T)v, y * (T)v, z * (T)v); }
+			vec3_ normalize() const {
 				T length = sqrt(x * x + y * y + z * z);
 				return vec3_(x / length, y / length, z / length);
 			}
@@ -157,34 +222,6 @@ namespace yuki
 
 		/* ------------------------------------------------------------------------------------------------- */
 
-		/* --------------------------------------- easy function ------------------------------------------- */
-		template <typename T>
-		T clamp_value(const T &x, const T &a, const T &b)
-		{
-			if (x < a) return a;
-			if (b < x) return b;
-			return x;
-		}
-		
-		template <typename T>
-		T accumlate_mul(const std::vector<T> &vec, int s = 0, int e = INT32_MAX)
-		{
-			T ret(1);
-			if (e < 0) e += (int)vec.size();
-			e = clamp_value(e, 0, (int)vec.size());
-			for (int i = s; i < e; ++i) ret *= vec[i];
-			return ret;
-		}
-		template <typename T>
-		T accumlate_add(const std::vector<T> &vec, int s = 0, int e = INT32_MAX)
-		{
-			T ret(0);
-			if (e < 0) e += (int)vec.size();
-			e = clamp_value(e, 0, (int)vec.size());
-			for (int i = s; i < e; ++i) ret += vec[i];
-			return ret;
-		}
-		/* ------------------------------------------------------------------------------------------------- */
 
 		/* -------------------------------------------Tensor3------------------------------------------------ */
 
@@ -514,61 +551,5 @@ namespace yuki
 		}
 
 		/* ------------------------------------------------------------------------------------------------- */
-
 	}
-
-	namespace math
-	{
-		/* used frequently in dsp */
-
-		template <typename T>
-		T nextpow2(T n)
-		{
-			if (n <= 1) { return 1; }
-			double p = std::log2(n);
-			if (p > (int)p) return std::pow(2, (int)p + 1);
-			return n;
-		}
-		/*
-			* The actual computation :
-			*      - in    : the input vector which defines the toeplitz matrix
-			*      - size  : size of in (ie number of elements)
-			*      - order : size of the system to solve. order must be < size -1
-			*      - acoeff: solution (ie ar coefficients). Size must be at last order+1
-			*      - err   : *prediction* error (scalar)
-			*      - kcoeff: reflexion coefficients. Size must be at last equal to equal to order.
-			*      - tmp   : cache, must have at least order elements, if NULL, will be allocated and free in this function
-			*
-			* this function assume all arrays are allocated with the right size, and that
-			* the parameters make sense. No checking is done, must be done before calling
-			* this function: in particular, in[0] must be non zero.
-			*
-			* Returns 0 on success, -1 if a compuation error happened (overflow, underflow
-			* for error calculation)
-		*/
-		int levinson(const double *in, int order, double *acoeff, double *err, double *kcoeff, double *tmp=NULL);
-
-		/*
-			* Return the roots of a polynomial with coefficients given in p.
-			* The values in the rank-1 array `p` are coefficients of a polynomial.
-			* If the length of `p` is n then the polynomial is described by::
-			*     p[0] * x**(n - 1) + p[1] * x**(n-2) + ... + p[n-2]*x + p[n - 1]
-		*/
-		std::vector<std::complex<double>> roots(const double *p, int n);
-
-		/*
-			Evaluate a polynomial at specific values.
-    		If `p` is of length N, this function returns the value:
-        	``p[0]*x**(N-1) + p[1]*x**(N-2) + ... + p[N-2]*x + p[N-1]`
-		*/
-		template <typename T, typename U>
-		T polyval(const U *p, int n, T x, bool reverse=false)
-		{
-			T ret(0);
-			for (int i = 0; i < n; ++i)
-				ret = ret * x + ((reverse)? p[n - 1 - i] : p[i]);
-			return ret;
-		}
-	}
-
 }

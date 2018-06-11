@@ -7,6 +7,7 @@ NAMESPACE_BEGIN(audio)
 class DSP
 {
 public:
+    static double energy2dB(double x) { return std::log10(x) * 20; }
     static double hz2mel(double hz) { return 2595.0 * std::log10(1 + hz / 700.0); }
     static double mel2hz(double mel) { return 700.0 * (std::pow(10, mel / 2595.0) - 1); }
     static Eigen::MatrixXd dct(const Eigen::MatrixXd &in, bool normalization=true);

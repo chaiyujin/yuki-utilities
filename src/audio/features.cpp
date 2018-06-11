@@ -1,6 +1,6 @@
 #include "features.h"
 #include "fftw3.h"
-#include "math/mathutils.h"
+#include "math/math.h"
 #include "signal_process.h"
 #include <iostream>
 #include <complex>
@@ -97,6 +97,16 @@ AudioFeatureList Features::filter_bank(
     feat = feat.unaryExpr<double(*)(double)>(zero_to_eps);
 
     return feat;
+}
+
+AudioFeatureList Features::log_filter_bank(
+    const AudioSamples &signal, int samplerate,
+    double winlen, double winstep, int nfft,
+    int nfilt, double lowfreq, double highfreq,
+    double preemph, AudioMask(*winfunc)(int length))
+{
+    AudioFeatureList feat = filter_bank(signal, samplerate, winlen, winstep, nfft, nfilt, lowfreq, highfreq, preemph, winfunc);
+    return feat.unaryExpr<double(*)(double)>(DSP::energy2dB);
 }
 
 std::pair<AudioFeatureList, AudioFeatureList> Features::filter_bank_energy(

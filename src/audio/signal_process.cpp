@@ -1,5 +1,5 @@
 #include "signal_process.h"
-#include "math/mathutils.h"
+#include "math/math.h"
 #include <fftw3.h>
 
 NAMESPACE_BEGIN(yuki)

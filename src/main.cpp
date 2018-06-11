@@ -1,8 +1,6 @@
 #include "core.h"
-#include "math/mathutils.h"
-#include "audio/io_wav.h"
-#include "audio/features.h"
-#include "audio/signal_process.h"
+#include "math/math.h"
+#include "audio/audio.h"
 #include "image/image.h"
 
 using namespace std;
@@ -84,13 +82,34 @@ void test_audio()
         cout << "Freqz:\n";
         cout << "  " << H.topRows(10).transpose() << endl;
     }
+    {
+        /* draw audio */
+        using namespace yuki::image;
+
+        int S = 0;
+        int E = Features::num_samples(wav_file.samplerate(), 64);
+        AudioSamples wins = slice(wav_file.track(0), S, E);
+
+        auto img = Draw::create_canvas(640, 480, {255, 255, 255});
+        Eigen::MatrixXd feat = Features::log_filter_bank(wins, wav_file.samplerate());
+        Draw::audio_feature(img, feat, Rect2d({0, 160}, {640, 320}));
+        Draw::audio_wav(
+            img, wins, Rect2d({0, 0}, {640, 160}),
+            0, Features::samples_aligned_to_feature(wav_file.samplerate(), feat.cols()));
+
+        auto haxis = Draw::horizon_axis({0.0, 0.64}, 5, 640, "SEC");
+        auto vaxis = 
+            concat_row(
+                Draw::vertical_axis({-1, 1}, 3, 640, 160, "wav"),
+                Draw::vertical_axis({0, 4000}, 5, 640, 320, "freq"),
+                "right");
+        auto full = concat_col(vaxis, concat_row(img, haxis));
+
+        cv::imwrite("../asset/white.jpg", full);
+    }
 }
 
 void test_image()
 {
     // test color map
-    using namespace yuki::image;
-
-    auto img = Draw::create_canvas(320, 240, {255, 255, 255});
-    cv::imwrite("../asset/white.jpg", img);
 }

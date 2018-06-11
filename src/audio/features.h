@@ -28,6 +28,21 @@ public:
     static double   dafault_highfreq;
     static AudioMask(*default_winfunc)(int);
 
+    static int num_samples(
+        int samplerate,
+        int winnum,
+        double  winlen      = default_winlen,
+        double  winstep     = default_winstep)
+    {
+        int samples = winlen * samplerate;
+        int step = winstep * samplerate;
+        return (winnum - 1) * step + samples;
+    }
+
+    static int samples_aligned_to_feature(
+        int samplerate, int feature_cols,
+        double winstep     = default_winstep)
+    { return feature_cols * samplerate * winstep; }
 
     static AudioFeatureList power_spectrum(
         const AudioSamples &signal, int samplerate,
@@ -37,6 +52,17 @@ public:
         AudioMask(*winfunc)(int length)=default_winfunc);
 
     static AudioFeatureList filter_bank(
+        const AudioSamples &signal, int samplerate,
+        double  winlen      = default_winlen,
+        double  winstep     = default_winstep,
+        int     nfft        = default_nfft,
+        int     nfilt       = default_nfilt_mel,
+        double  lowfreq     = dafault_lowfreq,
+        double  highfreq    = dafault_highfreq,
+        double  preemph     = default_preemph,
+        AudioMask(*winfunc)(int length)=default_winfunc);
+    
+    static AudioFeatureList log_filter_bank(
         const AudioSamples &signal, int samplerate,
         double  winlen      = default_winlen,
         double  winstep     = default_winstep,
