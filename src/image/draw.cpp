@@ -37,7 +37,7 @@ void Draw::audio_wav(
         int x1 = map_w(i + 1);
         int y0 = map_h(signal[i]);
         int y1 = map_h(signal[i + 1]);
-        cv::line(img, cv::Point(x0, y0), cv::Point(x1, y1), CV_RGB(0, 100, 200));
+        cv::line(img, cv::Point(x0, y0), cv::Point(x1, y1), CV_RGB(0, 100, 200), 1, cv::LINE_AA);
     }
 }
 
@@ -67,9 +67,9 @@ cv::Mat Draw::horizon_axis(
 
     int h = 0;
     cv::Mat img = create_canvas(main_w, H * 5 / 3 + 5);
-    cv::line(img, cv::Point(0,          h), cv::Point(main_w,       h),     CV_RGB(50, 50, 50), 1);
-    cv::line(img, cv::Point(0,          h), cv::Point(0,            h + H), CV_RGB(50, 50, 50), 1);
-    cv::line(img, cv::Point(main_w,     h), cv::Point(main_w,       h + H), CV_RGB(50, 50, 50), 1);
+    cv::line(img, cv::Point(0,          h), cv::Point(main_w,       h),     CV_RGB(50, 50, 50), 2, cv::LINE_AA);
+    cv::line(img, cv::Point(0,          h), cv::Point(0,            h + H), CV_RGB(50, 50, 50), 2, cv::LINE_AA);
+    cv::line(img, cv::Point(main_w,     h), cv::Point(main_w,       h + H), CV_RGB(50, 50, 50), 2, cv::LINE_AA);
     
     auto num_to_str = [](double x) -> std::string {
         std::string str = std::to_string(x);
@@ -85,20 +85,20 @@ cv::Mat Draw::horizon_axis(
         int label_x = (double)main_w * i / (num_label - 1);
         double label_v = (double)(minmax.end - minmax.start) * i / (num_label - 1) + minmax.start;
         auto str = num_to_str(label_v);
-        cv::line(img, cv::Point(label_x, h), cv::Point(label_x, h + H / 3), CV_RGB(50, 50, 50), 1);
+        cv::line(img, cv::Point(label_x, h), cv::Point(label_x, h + H / 3), CV_RGB(50, 50, 50), 1, cv::LINE_AA);
         cv::putText(
             img, str, cv::Point(label_x - str.length() * W / 2, h + H),
-            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50));
+            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50), 1, cv::LINE_AA);
     }
     {
         auto str = num_to_str(minmax.start);
         cv::putText(
             img, str, cv::Point(0, h + H),
-            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50));
+            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50), 1, cv::LINE_AA);
         str = num_to_str(minmax.end);
         cv::putText(
             img, str, cv::Point(main_w - str.length() * W - 3, h + H),
-            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50));
+            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50), 1, cv::LINE_AA);
     }
     /* axis unit */
     if (unit.length()) {
@@ -106,7 +106,7 @@ cv::Mat Draw::horizon_axis(
         int y = h + H * 5 / 3;
         cv::putText(
             img, unit, cv::Point(x, y),
-            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50));
+            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50), 1, cv::LINE_AA);
     }
     return img;
 }
@@ -149,36 +149,36 @@ cv::Mat Draw::vertical_axis(
     int w = max_len * W + gap;
     cv::Mat img = create_canvas(w, main_h);
 
-    cv::line(img, cv::Point(w - 1, main_h - 1), cv::Point(w - 1,               0),          CV_RGB(50, 50, 50), 1);
-    cv::line(img, cv::Point(w - 1, main_h - 1), cv::Point(w - W * 2 - gap,     main_h - 1), CV_RGB(50, 50, 50), 1);
-    cv::line(img, cv::Point(w - 1, 0),          cv::Point(w - W * 2 - gap,     0),          CV_RGB(50, 50, 50), 1);
+    cv::line(img, cv::Point(w - 1, main_h - 1), cv::Point(w - 1,               0),          CV_RGB(50, 50, 50), 1, cv::LINE_AA);
+    cv::line(img, cv::Point(w - 1, main_h - 1), cv::Point(w - W * 2 - gap,     main_h - 1), CV_RGB(50, 50, 50), 1, cv::LINE_AA);
+    cv::line(img, cv::Point(w - 1, 0),          cv::Point(w - W * 2 - gap,     0),          CV_RGB(50, 50, 50), 1, cv::LINE_AA);
     
     {
         auto str = num_to_str(minmax.start);
         cv::putText(
             img, str, cv::Point(w - str.length() * W - gap, main_h - 3),
-            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50));
+            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50), 1, cv::LINE_AA);
         str = num_to_str(minmax.end);
         cv::putText(
             img, str, cv::Point(w - str.length() * W - gap, H + 3),
-            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50));
+            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50), 1, cv::LINE_AA);
     }
     for (int i = 1; i + 1 < num_label; ++i)
     {
         auto str = labels[i];
         int x = w - gap - W * str.length();
         int y = label_y[i];
-        cv::line(img, cv::Point(w, y), cv::Point(w - gap, y), CV_RGB(50, 50, 50), 1);
+        cv::line(img, cv::Point(w, y), cv::Point(w - gap, y), CV_RGB(50, 50, 50), 1, cv::LINE_AA);
         cv::putText(
             img, str, cv::Point(x, y + H / 2),
-            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50));
+            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50), 1, cv::LINE_AA);
     }
     if (unit.length()) {
         int x = 1 * W;
         int y = main_h / 2;
         cv::putText(
             img, unit, cv::Point(x, y + H / 2),
-            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50));
+            cv::FONT_HERSHEY_DUPLEX, Scale, CV_RGB(50, 50, 50), 1, cv::LINE_AA);
     }
 
     return img;
