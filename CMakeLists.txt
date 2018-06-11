@@ -55,7 +55,8 @@ add_executable(yuki
     ${PROJECT_SOURCE_DIR}/src/audio/io_wav.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/features.cpp
     ${PROJECT_SOURCE_DIR}/src/audio/signal_process.cpp
-    ${PROJECT_SOURCE_DIR}/src/image/color_map.cpp)
+    ${PROJECT_SOURCE_DIR}/src/image/color_map.cpp
+    ${PROJECT_SOURCE_DIR}/src/image/draw.cpp)
 target_link_libraries(yuki
     Eigen3::Eigen
     fftw3

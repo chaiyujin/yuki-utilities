@@ -28,6 +28,7 @@ void test_vec()
     cout << "cross (1,2,3) (3,2,1) = " << cross(double3(1,2,3), double3(3,2,1)) << endl;
     cout << "dot   (1,2,3) (3,2,1) = " << dot(double3(1,2,3), double3(3,2,1)) << endl;
     cout << "to_eigen:\n" << to_eigen(double3(1,2,3)).transpose() << endl;
+    cout << "double3 size: " << sizeof(double3) << ", 3 double size:" << sizeof(double) * 3 << endl;
 }
 
 void test_audio()
@@ -80,7 +81,8 @@ void test_audio()
         auto WH_ = DSP::freqz(1, lpc.col(0));
         auto WH = DSP::WH_to_FreqdB(WH_, wav_file.samplerate() / 2.0);
         auto H = WH.col(1);
-        cout << H.topRows(10) << endl;
+        cout << "Freqz:\n";
+        cout << "  " << H.topRows(10).transpose() << endl;
     }
 }
 
@@ -88,4 +90,7 @@ void test_image()
 {
     // test color map
     using namespace yuki::image;
+
+    auto img = Draw::create_canvas(320, 240, {255, 255, 255});
+    cv::imwrite("../asset/white.jpg", img);
 }

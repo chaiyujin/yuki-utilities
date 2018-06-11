@@ -38,6 +38,7 @@ namespace yuki
 			vec2_(const vec2_<T> &b) : x(b.x), y(b.y) {}
 			vec2_(const vec3_<T> &b);
 			vec2_(const vec4_<T> &b);
+			bool isnan() const { return std::isnan(x) || std::isnan(y); }
 			T * operator&() { return &x; }
 			const T * operator&() const { return &x; }
 			bool operator<(const vec2_ &b) const { return (x < b.x || (x == b.x && y < b.y)); }
@@ -53,6 +54,10 @@ namespace yuki
 			vec3_(const vec2_<T> &b) : x(b.x), y(b.y), z(0) {}
 			vec3_(const vec3_<T> &b) : x(b.x), y(b.y), z(b.z) {}
 			vec3_(const vec4_<T> &b);
+			bool isnan() const { return std::isnan(x) || std::isnan(y) || std::isnan(z); }
+			T &r() { return x; } const T &r() const { return x; }
+			T &g() { return y; } const T &g() const { return y; }
+			T &b() { return z; } const T &b() const { return z; }
 			T * operator&() { return &x; }
 			const T * operator&() const { return &x; }
 			bool operator<(const vec3_ &b) const { return (x < b.x || (x == b.x && y < b.y) || (x == b.x && y == b.y && z < b.z)); }
@@ -89,6 +94,7 @@ namespace yuki
 			vec4_(const vec2_<T> &b) : x(b.x), y(b.y), z(0), w(0) {}
 			vec4_(const vec3_<T> &b) : x(b.x), y(b.y), z(b.z), w(0) {}
 			vec4_(const vec4_<T> &b) : x(b.x), y(b.y), z(b.z), w(b.w) {}
+			bool isnan() const { return std::isnan(x) || std::isnan(y) || std::isnan(z) || std::isnan(w); }
 			T &r() { return x; } const T &r() const { return x; }
 			T &g() { return y; } const T &g() const { return y; }
 			T &b() { return z; } const T &b() const { return z; }
@@ -141,6 +147,7 @@ namespace yuki
 		typedef vec3_<float> float3;
 		typedef vec2_<double> double2;
 		typedef vec3_<double> double3;
+		typedef vec3_<unsigned char> rgb24;
 		typedef vec4_<unsigned char> rgba32;
 		typedef vec4_<float> rgba_flt;
 
